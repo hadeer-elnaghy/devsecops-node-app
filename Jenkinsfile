@@ -56,6 +56,7 @@ pipeline {
                 )
             }
         }
+        
 
         stage('2. SonarQube SAST Analysis') {
             when {
