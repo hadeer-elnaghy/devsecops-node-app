@@ -1,0 +1,69 @@
+1- setup
+
+- SonarQube
+# 1. Create the Docker network
+docker network create devsecops-net
+
+# 2. Run the SonarQube container on the network
+docker run -d \
+  --name sonarqube \
+  --network devsecops-net \
+  -p 9000:9000 \
+  sonarqube:lts-community
+
+#Important Note for Jenkins: Since SonarQube is now running inside Docker on the devsecops-net network, if Jenkins is also running in a Docker container, attach Jenkins to devsecops-net (docker network connect devsecops-net jenkins-local) so Jenkins can access SonarQube directly via the container name
+
+# then login on http://localhost:9000 with user admin and password admin
+# ceate SonarQube User Token (from SonarQube -> My Account -> Security)
+
+- snyk
+create account on https://snyk.io
+generte peronal access token from account seettings
+
+- dockerhub
+get username and password
+
+- github 
+create github repo with files 
+.dockerignore
+Dockerfile
+Jenkinsfile
+package.json
+server.js
+sonar-project.properties
+create peronal access token and get username
+
+
+Phase 2: Install CLI Tools on the Jenkins Host / Agent
+Your Jenkins pipeline executes shell commands (sh) expecting CLI tools pre-installed on the host machine running the Jenkins agent:
+
+1. SonarQube Scanner
+Install sonar-scanner and add it to your system PATH:
+
+Bash
+# Example for Linux / Debian
+wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+unzip sonar-scanner-cli-5.0.1.3006-linux.zip
+sudo mv sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner
+sudo ln -s /opt/sonar-scanner/bin/sonar-scanner /usr/local/bin/sonar-scanner
+2. Snyk CLI
+Install Snyk globally via npm or binary:
+
+Bash
+sudo npm install -g snyk
+# OR via curl:
+# sudo curl --compressed https://static.snyk.io/cli/latest/snyk-linux -o /usr/local/bin/snyk && sudo chmod +x /usr/local/bin/snyk
+3. Trivy Security Scanner
+Install Aqua Security Trivy:
+
+Bash
+sudo apt-get install wget apt-transport-https gnupg lsb-release -y
+wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+sudo apt-get update && sudo apt-get install trivy -y
+4. Docker & Kubernetes Permissions
+Ensure the jenkins user on your server has permission to execute docker and kubectl commands:
+
+Bash
+sudo usermod -aG docker jenkins
+# Ensure ~/.kube/config or KUBECONFIG exists for the jenkins user so kubectl commands

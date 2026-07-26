@@ -6,7 +6,7 @@ pipeline {
         APP_NAME        = 'devsecops-node-app'
         IMAGE_TAG       = "${BUILD_NUMBER}"
 
-        SONAR_CRED_ID   = 'sonarqube-token'
+        SONAR_CRED_ID   = 'squ_4192a59f68a8fa266ac698e2468b8da9bcf2d34d'
         SNYK_CRED_ID    = 'snyk_uat.1fcad39e.eyJlIjoxNzkyODUxNDk1LCJoIjoic255ay5pbyIsImoiOiJBWi1leXJvSmszaF9xSHY5RWR4X1dRIiwicyI6IjhRTXliMGs1UzgyYlU2bUtkU3pDTXciLCJ0aWQiOiJBQUFBQUFBQUFBQUFBQUFBQUFBQUFBIn0.IBLib-PzotZKKPOg_9N03IpgHLDBhJwFjMNZBcEJQemiOsRq1GFiaW8EvqSoWQmxUHfK9Wuj4jBPUg0m4a7cBA'
         DOCKER_CRED_ID  = 'iKSP5)g3!+guHqE'
     }
@@ -51,7 +51,7 @@ pipeline {
 
                 git(
                     branch: params.BRANCH_NAME,
-                    url: 'https://github.com/ahmadelomdaa/devsecops-node-app.git',
+                    url: 'https://github.com/hadeer-elnaghy/devsecops-node-app.git',
                     credentialsId: 'github-credentials'
                 )
             }
