@@ -58,38 +58,41 @@ pipeline {
         }
         
 
-        stage('2. SonarQube SAST Analysis') {
-            when {
-                expression {
-                    return params.RUN_SONARQUBE
-                }
-            }
+stage('2. SonarQube SAST Analysis') {
+    when {
+        expression { return params.RUN_SONARQUBE }
+    }
 
-            steps {
-                echo 'Executing SonarQube static code analysis via Docker...'
+    steps {
+        echo 'Executing SonarQube static code analysis via Docker...'
 
-                withCredentials([
-                    string(
-                        credentialsId: env.SONAR_CRED_ID,
-                        variable: 'SONAR_TOKEN'
-                    )
-                ]) {
-                    sh '''
-                        set -e
+        withCredentials([
+            string(
+                credentialsId: env.SONAR_CRED_ID,
+                variable: 'SONAR_TOKEN'
+            )
+        ]) {
+            sh '''
+                set -e
 
-                        echo "Running SonarQube Scanner Container..."
+                if [ -z "$SONAR_TOKEN" ]; then
+                    echo "ERROR: SONAR_TOKEN parameter is empty! Check Jenkins credentials."
+                    exit 1
+                fi
 
-                        docker run --rm \
-                          --network devsecops-net \
-                          -v "${WORKSPACE}:/usr/src" \
-                          sonarsource/sonar-scanner-cli \
-                          -Dsonar.projectKey="${APP_NAME}" \
-                          -Dsonar.host.url="http://sonarqube:9000" \
-                          -Dsonar.token="${SONAR_TOKEN}"
-                    '''
-                }
-            }
+                echo "Running SonarQube Scanner Container..."
+
+                docker run --rm \
+                  --network devsecops-net \
+                  -v "${WORKSPACE}:/usr/src" \
+                  sonarsource/sonar-scanner-cli \
+                  -Dsonar.projectKey="${APP_NAME}" \
+                  -Dsonar.host.url="http://sonarqube:9000" \
+                  -Dsonar.token="${SONAR_TOKEN}"
+            '''
         }
+    }
+}
 
         stage('3. Snyk Dependency SCA Scan') {
             when {
