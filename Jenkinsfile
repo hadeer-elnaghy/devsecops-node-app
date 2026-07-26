@@ -57,6 +57,7 @@ pipeline {
             }
         }
         
+
         stage('2. SonarQube SAST Analysis') {
             when {
                 expression {
@@ -79,12 +80,12 @@ pipeline {
                         echo "Running SonarQube Scanner Container..."
 
                         docker run --rm \
-                        --network devsecops-net \
-                        -v "${WORKSPACE}:/usr/src" \
-                        sonarsource/sonar-scanner-cli \
-                        -Dsonar.projectKey="${APP_NAME}" \
-                        -Dsonar.host.url="http://sonarqube:9000" \
-                        -Dsonar.token="${SONAR_TOKEN}"
+                          --network devsecops-net \
+                          -v "${WORKSPACE}:/usr/src" \
+                          sonarsource/sonar-scanner-cli \
+                          -Dsonar.projectKey="${APP_NAME}" \
+                          -Dsonar.host.url="http://sonarqube:9000" \
+                          -Dsonar.token="${SONAR_TOKEN}"
                     '''
                 }
             }
