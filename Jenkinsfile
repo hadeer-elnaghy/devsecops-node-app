@@ -1,0 +1,255 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_HUB_USER = 'hadeerelnaghy'
+        APP_NAME        = 'devsecops-node-app'
+        IMAGE_TAG       = "${BUILD_NUMBER}"
+
+        SONAR_CRED_ID   = 'sonarqube-token'
+        SNYK_CRED_ID    = 'snyk_uat.1fcad39e.eyJlIjoxNzkyODUxNDk1LCJoIjoic255ay5pbyIsImoiOiJBWi1leXJvSmszaF9xSHY5RWR4X1dRIiwicyI6IjhRTXliMGs1UzgyYlU2bUtkU3pDTXciLCJ0aWQiOiJBQUFBQUFBQUFBQUFBQUFBQUFBQUFBIn0.IBLib-PzotZKKPOg_9N03IpgHLDBhJwFjMNZBcEJQemiOsRq1GFiaW8EvqSoWQmxUHfK9Wuj4jBPUg0m4a7cBA'
+        DOCKER_CRED_ID  = 'iKSP5)g3!+guHqE'
+    }
+
+    parameters {
+        choice(
+            name: 'DEPLOY_ENV',
+            choices: ['DEV', 'STAGING', 'PROD'],
+            description: 'Target environment for deployment'
+        )
+
+        string(
+            name: 'BRANCH_NAME',
+            defaultValue: 'main',
+            description: 'Git branch to build and test'
+        )
+
+        booleanParam(
+            name: 'RUN_SONARQUBE',
+            defaultValue: true,
+            description: 'Toggle SonarQube SAST scan'
+        )
+
+        booleanParam(
+            name: 'RUN_SNYK',
+            defaultValue: true,
+            description: 'Toggle Snyk SCA dependency scan'
+        )
+
+        booleanParam(
+            name: 'RUN_TRIVY',
+            defaultValue: true,
+            description: 'Toggle Trivy container image scan'
+        )
+    }
+
+    stages {
+
+        stage('1. Checkout Source Code') {
+            steps {
+                echo "Checking out code from branch: ${params.BRANCH_NAME}"
+
+                git(
+                    branch: params.BRANCH_NAME,
+                    url: 'https://github.com/ahmadelomdaa/devsecops-node-app.git',
+                    credentialsId: 'github-credentials'
+                )
+            }
+        }
+
+        stage('2. SonarQube SAST Analysis') {
+            when {
+                expression {
+                    return params.RUN_SONARQUBE
+                }
+            }
+
+            steps {
+                echo 'Executing SonarQube static code analysis...'
+
+                withCredentials([
+                    string(
+                        credentialsId: env.SONAR_CRED_ID,
+                        variable: 'SONAR_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        set -e
+
+                        echo "Running SonarQube Scanner..."
+
+                        sonar-scanner \
+                          -Dsonar.projectKey="${APP_NAME}" \
+                          -Dsonar.login="${SONAR_TOKEN}"
+                    '''
+                }
+            }
+        }
+
+        stage('3. Snyk Dependency SCA Scan') {
+            when {
+                expression {
+                    return params.RUN_SNYK
+                }
+            }
+
+            steps {
+                echo 'Executing Snyk dependency vulnerability scan...'
+
+                withCredentials([
+                    string(
+                        credentialsId: env.SNYK_CRED_ID,
+                        variable: 'SNYK_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        set -e
+
+                        echo "Authenticating with Snyk..."
+                        snyk auth "${SNYK_TOKEN}"
+
+                        echo "Running Snyk dependency scan..."
+                        snyk test --severity-threshold=high
+                    '''
+                }
+            }
+        }
+
+        stage('4. Docker Build Image') {
+            steps {
+                echo "Building Docker image: ${DOCKER_HUB_USER}/${APP_NAME}:${IMAGE_TAG}"
+
+                sh '''
+                    set -e
+
+                    docker build \
+                        -t "${DOCKER_HUB_USER}/${APP_NAME}:${IMAGE_TAG}" \
+                        -t "${DOCKER_HUB_USER}/${APP_NAME}:latest" \
+                        .
+                '''
+            }
+        }
+
+        stage('5. Trivy Image Vulnerability Scan') {
+            when {
+                expression {
+                    return params.RUN_TRIVY
+                }
+            }
+
+            steps {
+                echo 'Executing Trivy vulnerability scan...'
+
+                sh '''
+                    set -e
+
+                    trivy image \
+                        --severity HIGH,CRITICAL \
+                        --exit-code 1 \
+                        "${DOCKER_HUB_USER}/${APP_NAME}:${IMAGE_TAG}"
+                '''
+            }
+        }
+
+        stage('6. Push Image to Docker Hub') {
+            steps {
+                echo 'Pushing verified image to Docker Hub...'
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: env.DOCKER_CRED_ID,
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
+                    sh '''
+                        set -e
+
+                        echo "${DOCKER_PASS}" | docker login \
+                            --username "${DOCKER_USER}" \
+                            --password-stdin
+
+                        docker push \
+                            "${DOCKER_HUB_USER}/${APP_NAME}:${IMAGE_TAG}"
+
+                        docker push \
+                            "${DOCKER_HUB_USER}/${APP_NAME}:latest"
+
+                        docker logout
+                    '''
+                }
+            }
+        }
+
+        stage('7. Production Manual Approval Gate') {
+            when {
+                expression {
+                    return params.DEPLOY_ENV == 'PROD'
+                }
+            }
+
+            steps {
+                script {
+                    echo 'Deployment to PRODUCTION requires manual approval.'
+
+                    input(
+                        id: 'PROD_RELEASE_APPROVAL',
+                        message: "Approve deployment of release #${env.IMAGE_TAG} to PRODUCTION?",
+                        ok: 'Approve & Deploy'
+                    )
+
+                    echo 'Production deployment approved.'
+                }
+            }
+        }
+
+        stage('8. Deploy Application') {
+            steps {
+                script {
+                    echo "Deploying application to ${params.DEPLOY_ENV} environment..."
+
+                    if (params.DEPLOY_ENV == 'PROD') {
+
+                        sh '''
+                            set -e
+
+                            kubectl set image deployment/${APP_NAME} \
+                                node-app=${DOCKER_HUB_USER}/${APP_NAME}:${IMAGE_TAG}
+
+                            kubectl rollout status \
+                                deployment/${APP_NAME} \
+                                --timeout=180s
+                        '''
+
+                    } else {
+                        echo "Deploying to non-production environment: ${params.DEPLOY_ENV}"
+
+                        // Add your DEV/STAGING deployment commands here.
+                        // Example:
+                        // kubectl -n dev set image deployment/${APP_NAME} ...
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Cleaning up workspace and local build artifacts...'
+
+            sh '''
+                docker image prune -f || true
+            '''
+
+            cleanWs()
+        }
+
+        success {
+            echo "SUCCESS: Pipeline executed successfully for ${params.DEPLOY_ENV} environment!"
+        }
+
+        failure {
+            echo 'FAILURE: Pipeline execution failed. Inspect the logs for security or runtime errors.'
+        }
+    }
+}
