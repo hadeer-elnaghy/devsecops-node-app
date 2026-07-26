@@ -84,7 +84,7 @@ pipeline {
                           -v "${WORKSPACE}:/usr/src" \
                           sonarsource/sonar-scanner-cli \
                           -Dsonar.projectKey="${APP_NAME}" \
-                          -Dsonar.host.url="http://sonarqube:9002" \
+                          -Dsonar.host.url="http://sonarqube:9005" \
                           -Dsonar.token="${SONAR_TOKEN}"
                     '''
                 }
