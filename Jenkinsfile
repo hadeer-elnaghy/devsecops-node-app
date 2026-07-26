@@ -107,12 +107,21 @@ pipeline {
                         variable: 'SNYK_TOKEN'
                     )
                 ]) {
-                    sh '''
-                    set -e
+                sh '''
+                                set -e
 
-                                    echo "Running Snyk via npx..."
-                                    npx --yes snyk test --severity-threshold=high
-                                '''
+                                # Get the running Jenkins container ID
+                                JENKINS_CONTAINER_ID=$(hostname)
+
+                                echo "Running Snyk CLI via Docker..."
+
+                                docker run --rm \
+                                --volumes-from "${JENKINS_CONTAINER_ID}" \
+                                -e SNYK_TOKEN="${SNYK_TOKEN}" \
+                                -w "${WORKSPACE}" \
+                                snyk/snyk:node \
+                                snyk test --severity-threshold=high
+                            '''
                 }
             }
         }
