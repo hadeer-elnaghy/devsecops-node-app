@@ -78,12 +78,14 @@ pipeline {
                         echo "Running SonarQube Scanner Container..."
 
                         docker run --rm \
-                        --network devsecops-net \
-                        -v "${WORKSPACE}:/usr/src" \
-                        sonarsource/sonar-scanner-cli:5 \
-                        -Dsonar.projectKey="${APP_NAME}" \
-                        -Dsonar.host.url="http://sonarqube:9000" \
-                        -Dsonar.login="${SONAR_TOKEN}"
+                          --network devsecops-net \
+                          -e SONAR_SCANNER_OPTS="-Xmx1024m -Dsonar.ws.timeout=300" \
+                          -v "${WORKSPACE}:/usr/src" \
+                          sonarsource/sonar-scanner-cli:5 \
+                          -Dsonar.projectKey="${APP_NAME}" \
+                          -Dsonar.host.url="http://sonarqube:9000" \
+                          -Dsonar.login="${SONAR_TOKEN}" \
+                          -Dsonar.ws.timeout=300
                     '''
                 }
             }
@@ -108,11 +110,14 @@ pipeline {
                     sh '''
                         set -e
 
-                        echo "Authenticating with Snyk..."
-                        snyk auth "${SNYK_TOKEN}"
+                        echo "Running Snyk CLI via Docker..."
 
-                        echo "Running Snyk dependency scan..."
-                        snyk test --severity-threshold=high
+                        docker run --rm \
+                          -e SNYK_TOKEN="${SNYK_TOKEN}" \
+                          -v "${WORKSPACE}:/project" \
+                          -w /project \
+                          snyk/snyk:node \
+                          snyk test --severity-threshold=high
                     '''
                 }
             }
