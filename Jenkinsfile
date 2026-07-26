@@ -162,7 +162,12 @@ pipeline {
                 sh '''
                     set -e
 
-                    trivy image \
+                    echo "Running Trivy scanner via Docker..."
+
+                    docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        aquasec/trivy:latest \
+                        image \
                         --severity HIGH,CRITICAL \
                         --exit-code 1 \
                         "${DOCKER_HUB_USER}/${APP_NAME}:${IMAGE_TAG}"
