@@ -80,7 +80,7 @@ pipeline {
                         docker run --rm \
                         --network devsecops-net \
                         -v "${WORKSPACE}:/usr/src" \
-                        sonarsource/sonar-scanner-cli \
+                        sonarsource/sonar-scanner-cli:5 \
                         -Dsonar.projectKey="${APP_NAME}" \
                         -Dsonar.host.url="http://sonarqube:9000" \
                         -Dsonar.login="${SONAR_TOKEN}"
