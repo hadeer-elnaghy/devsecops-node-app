@@ -108,16 +108,11 @@ pipeline {
                     )
                 ]) {
                     sh '''
-                    echo "=== WORKSPACE PATH ==="
-                                echo "${WORKSPACE}"
+                    set -e
 
-                                echo "=== WHAT DOCKER SEES ==="
-                                docker run --rm \
-                                -v "${WORKSPACE}:/project" \
-                                -w /project \
-                                snyk/snyk:node \
-                                ls -la /project
-                            '''
+                                    echo "Running Snyk via npx..."
+                                    npx --yes snyk test --severity-threshold=high
+                                '''
                 }
             }
         }
