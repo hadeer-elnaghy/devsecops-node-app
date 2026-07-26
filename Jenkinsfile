@@ -108,20 +108,19 @@ pipeline {
                     )
                 ]) {
                 sh '''
-                                set -e
+                set -e
 
-                                # Get the running Jenkins container ID
-                                JENKINS_CONTAINER_ID=$(hostname)
+                JENKINS_CONTAINER_ID=$(hostname)
 
-                                echo "Running Snyk CLI via Docker..."
+                echo "Running Snyk CLI via Docker..."
 
-                                docker run --rm \
-                                --volumes-from "${JENKINS_CONTAINER_ID}" \
-                                -e SNYK_TOKEN="${SNYK_TOKEN}" \
-                                -w "${WORKSPACE}" \
-                                snyk/snyk:node \
-                                sh -c "npm install && snyk test --severity-threshold=high"
-                            '''
+                docker run --rm \
+                  --volumes-from "${JENKINS_CONTAINER_ID}" \
+                  -e SNYK_TOKEN="${SNYK_TOKEN}" \
+                  -w "${WORKSPACE}" \
+                  snyk/snyk:node \
+                  sh -c 'npm install && snyk test --severity-threshold=high'
+               '''
                 }
             }
         }
