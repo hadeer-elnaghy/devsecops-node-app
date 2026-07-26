@@ -162,15 +162,21 @@ pipeline {
                 sh '''
                     set -e
 
-                    echo "Running Trivy scanner via Docker..."
+                    IMAGE="${DOCKER_HUB_USER}/${APP_NAME}:${IMAGE_TAG}"
+
+                    echo "Scanning local Docker image: ${IMAGE}"
+
+                    docker image inspect "${IMAGE}" > /dev/null
 
                     docker run --rm \
                         -v /var/run/docker.sock:/var/run/docker.sock \
                         aquasec/trivy:latest \
                         image \
+                        --image-src docker \
                         --severity HIGH,CRITICAL \
                         --exit-code 1 \
-                        "${DOCKER_HUB_USER}/${APP_NAME}:${IMAGE_TAG}"
+                        --timeout 10m \
+                        "${IMAGE}"
                 '''
             }
         }
