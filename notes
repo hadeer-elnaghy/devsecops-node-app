@@ -38,7 +38,6 @@ Phase 2: Install CLI Tools on the Jenkins Host / Agent
 Your Jenkins pipeline executes shell commands (sh) expecting CLI tools pre-installed on the host machine running the Jenkins agent:
 
 1. SonarQube Scanner
-Install sonar-scanner and add it to your system PATH:
 
 docker run -d --name sonarqube \
   --hostname sonarqube \
@@ -48,12 +47,7 @@ docker run -d --name sonarqube \
   -e SONAR_WEB_JAVAADDITIONALOPTS="-Xmx1g -Xms1g" \
   sonarqube:9.9-community
 
-Install Snyk globally via npm or binary:
 
-Bash
-sudo npm install -g snyk
-# OR via curl:
-# sudo curl --compressed https://static.snyk.io/cli/latest/snyk-linux -o /usr/local/bin/snyk && sudo chmod +x /usr/local/bin/snyk
 3. Trivy Security Scanner
 Install Aqua Security Trivy:
 

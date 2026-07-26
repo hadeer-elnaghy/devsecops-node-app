@@ -117,7 +117,7 @@ pipeline {
                           -v "${WORKSPACE}:/project" \
                           -w /project \
                           snyk/snyk:node \
-                          snyk test --severity-threshold=high
+                          snyk test --package-manager=npm --severity-threshold=high
                     '''
                 }
             }
