@@ -65,7 +65,7 @@ pipeline {
             }
 
             steps {
-                echo 'Executing SonarQube static code analysis...'
+                echo 'Executing SonarQube static code analysis via Docker...'
 
                 withCredentials([
                     string(
@@ -76,11 +76,15 @@ pipeline {
                     sh '''
                         set -e
 
-                        echo "Running SonarQube Scanner..."
+                        echo "Running SonarQube Scanner Container..."
 
-                        sonar-scanner \
+                        docker run --rm \
+                          --network devsecops-net \
+                          -v "${WORKSPACE}:/usr/src" \
+                          sonarsource/sonar-scanner-cli \
                           -Dsonar.projectKey="${APP_NAME}" \
-                          -Dsonar.login="${SONAR_TOKEN}"
+                          -Dsonar.host.url="http://sonarqube:9000" \
+                          -Dsonar.token="${SONAR_TOKEN}"
                     '''
                 }
             }
