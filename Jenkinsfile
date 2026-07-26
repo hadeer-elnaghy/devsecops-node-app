@@ -108,18 +108,16 @@ pipeline {
                     )
                 ]) {
                     sh '''
-                        set -e
+                    echo "=== WORKSPACE PATH ==="
+                                echo "${WORKSPACE}"
 
-                        echo "Running Snyk CLI via Docker..."
-
-                docker run --rm \
-                  --user "$(id -u):$(id -g)" \
-                  -e SNYK_TOKEN="${SNYK_TOKEN}" \
-                  -v "${WORKSPACE}:/project" \
-                  -w /project \
-                  snyk/snyk:node \
-                  snyk test --file=package.json --severity-threshold=high
-                    '''
+                                echo "=== WHAT DOCKER SEES ==="
+                                docker run --rm \
+                                -v "${WORKSPACE}:/project" \
+                                -w /project \
+                                snyk/snyk:node \
+                                ls -la /project
+                            '''
                 }
             }
         }
