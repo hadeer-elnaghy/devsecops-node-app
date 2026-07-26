@@ -120,7 +120,7 @@ pipeline {
                                 -e SNYK_TOKEN="${SNYK_TOKEN}" \
                                 -w "${WORKSPACE}" \
                                 snyk/snyk:node \
-                                snyk test --severity-threshold=high
+                                sh -c "npm install && snyk test --severity-threshold=high"
                             '''
                 }
             }
