@@ -181,35 +181,35 @@ pipeline {
             }
         }
 
-        stage('6. Push Image to Docker Hub') {
-            steps {
-                echo 'Pushing verified image to Docker Hub...'
+        // stage('6. Push Image to Docker Hub') {
+        //     steps {
+        //         echo 'Pushing verified image to Docker Hub...'
 
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: env.DOCKER_CRED_ID,
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    )
-                ]) {
-                    sh '''
-                        set -e
+        //         withCredentials([
+        //             usernamePassword(
+        //                 credentialsId: env.DOCKER_CRED_ID,
+        //                 usernameVariable: 'DOCKER_USER',
+        //                 passwordVariable: 'DOCKER_PASS'
+        //             )
+        //         ]) {
+        //             sh '''
+        //                 set -e
 
-                        echo "${DOCKER_PASS}" | docker login \
-                            --username "${DOCKER_USER}" \
-                            --password-stdin
+        //                 echo "${DOCKER_PASS}" | docker login \
+        //                     --username "${DOCKER_USER}" \
+        //                     --password-stdin
 
-                        docker push \
-                            "${DOCKER_HUB_USER}/${APP_NAME}:${IMAGE_TAG}"
+        //                 docker push \
+        //                     "${DOCKER_HUB_USER}/${APP_NAME}:${IMAGE_TAG}"
 
-                        docker push \
-                            "${DOCKER_HUB_USER}/${APP_NAME}:latest"
+        //                 docker push \
+        //                     "${DOCKER_HUB_USER}/${APP_NAME}:latest"
 
-                        docker logout
-                    '''
-                }
-            }
-        }
+        //                 docker logout
+        //             '''
+        //         }
+        //     }
+        // }
 
         stage('7. Production Manual Approval Gate') {
             when {
