@@ -7,8 +7,8 @@ WORKDIR /app
 # Copy dependency manifests
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install production dependencies and clean cache
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Copy application source code
 COPY . .
