@@ -234,31 +234,61 @@ pipeline {
         }
 
         stage('8. Deploy Application') {
+
             steps {
+
                 script {
+
                     echo "Deploying application to ${params.DEPLOY_ENV} environment..."
 
+
+
                     if (params.DEPLOY_ENV == 'PROD') {
-                        // 'k8s-kubeconfig' is the Credential ID created in Jenkins
-                        withKubeConfig(credentialsId: 'k8s-kubeconfig') {
-                            sh '''
-                                set -e
 
-                                kubectl set image deployment/${APP_NAME} \
-                                    node-app=${DOCKER_HUB_USER}/${APP_NAME}:${IMAGE_TAG}
 
-                                kubectl rollout status \
-                                    deployment/${APP_NAME} \
-                                    --timeout=180s
-                            '''
-                        }
+
+                        sh '''
+
+                            set -e
+
+
+
+                            kubectl set image deployment/${APP_NAME} \
+
+                                node-app=${DOCKER_HUB_USER}/${APP_NAME}:${IMAGE_TAG}
+
+
+
+                            kubectl rollout status \
+
+                                deployment/${APP_NAME} \
+
+                                --timeout=180s
+
+                        '''
+
+
+
                     } else {
+
                         echo "Deploying to non-production environment: ${params.DEPLOY_ENV}"
+
+
+
+                        // Add your DEV/STAGING deployment commands here.
+
+                        // Example:
+
+                        // kubectl -n dev set image deployment/${APP_NAME} ...
+
                     }
+
                 }
+
             }
+
         }
-    }
+ 
 
     post {
         always {
