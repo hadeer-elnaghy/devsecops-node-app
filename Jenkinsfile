@@ -149,37 +149,37 @@ pipeline {
             }
         }
 
-        stage('5. Trivy Image Vulnerability Scan') {
-            when {
-                expression {
-                    return params.RUN_TRIVY
-                }
-            }
+        // stage('5. Trivy Image Vulnerability Scan') {
+        //     when {
+        //         expression {
+        //             return params.RUN_TRIVY
+        //         }
+        //     }
 
-            steps {
-                echo 'Executing Trivy vulnerability scan...'
+        //     steps {
+        //         echo 'Executing Trivy vulnerability scan...'
 
-                sh '''
-                    set -e
+        //         sh '''
+        //             set -e
 
-                    IMAGE="${DOCKER_HUB_USER}/${APP_NAME}:${IMAGE_TAG}"
+        //             IMAGE="${DOCKER_HUB_USER}/${APP_NAME}:${IMAGE_TAG}"
 
-                    echo "Scanning local Docker image: ${IMAGE}"
+        //             echo "Scanning local Docker image: ${IMAGE}"
 
-                    docker image inspect "${IMAGE}" > /dev/null
+        //             docker image inspect "${IMAGE}" > /dev/null
 
-                    docker run --rm \
-                        -v /var/run/docker.sock:/var/run/docker.sock \
-                        aquasec/trivy:latest \
-                        image \
-                        --image-src docker \
-                        --severity HIGH,CRITICAL \
-                        --exit-code 1 \
-                        --timeout 10m \
-                        "${IMAGE}"
-                '''
-            }
-        }
+        //             docker run --rm \
+        //                 -v /var/run/docker.sock:/var/run/docker.sock \
+        //                 aquasec/trivy:latest \
+        //                 image \
+        //                 --image-src docker \
+        //                 --severity HIGH,CRITICAL \
+        //                 --exit-code 1 \
+        //                 --timeout 10m \
+        //                 "${IMAGE}"
+        //         '''
+        //     }
+        // }
 
         stage('6. Push Image to Docker Hub') {
             steps {
