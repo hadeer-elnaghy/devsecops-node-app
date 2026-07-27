@@ -56,16 +56,15 @@ pipeline {
                 )
             }
         }
+        
 
         stage('2. SonarQube SAST Analysis') {
             when {
-                expression {
-                    return params.RUN_SONARQUBE
-                }
+                expression { return params.RUN_SONARQUBE }
             }
 
             steps {
-                echo 'Executing SonarQube static code analysis...'
+                echo 'Executing SonarQube static code analysis via Docker...'
 
                 withCredentials([
                     string(
@@ -76,11 +75,17 @@ pipeline {
                     sh '''
                         set -e
 
-                        echo "Running SonarQube Scanner..."
+                        echo "Running SonarQube Scanner Container..."
 
-                        sonar-scanner \
+                        docker run --rm \
+                          --network devsecops-net \
+                          -e SONAR_SCANNER_OPTS="-Xmx1024m -Dsonar.ws.timeout=300" \
+                          -v "${WORKSPACE}:/usr/src" \
+                          sonarsource/sonar-scanner-cli:5 \
                           -Dsonar.projectKey="${APP_NAME}" \
-                          -Dsonar.login="${SONAR_TOKEN}"
+                          -Dsonar.host.url="http://sonarqube:9000" \
+                          -Dsonar.login="${SONAR_TOKEN}" \
+                          -Dsonar.ws.timeout=300
                     '''
                 }
             }
@@ -105,10 +110,24 @@ pipeline {
                     sh '''
                         set -e
 
-                        echo "Authenticating with Snyk..."
-                        snyk auth "${SNYK_TOKEN}"
+                        JENKINS_CONTAINER_ID=$(hostname)
 
-                        echo "Running Snyk dependency scan..."
+                        echo "Installing dependencies..."
+
+                        docker run --rm \
+                        --volumes-from "${JENKINS_CONTAINER_ID}" \
+                        -e SNYK_TOKEN="${SNYK_TOKEN}" \
+                        -w "${WORKSPACE}" \
+                        snyk/snyk:node \
+                        npm install
+
+                        echo "Running Snyk vulnerability scan..."
+
+                        docker run --rm \
+                        --volumes-from "${JENKINS_CONTAINER_ID}" \
+                        -e SNYK_TOKEN="${SNYK_TOKEN}" \
+                        -w "${WORKSPACE}" \
+                        snyk/snyk:node \
                         snyk test --severity-threshold=high
                     '''
                 }
@@ -143,43 +162,54 @@ pipeline {
                 sh '''
                     set -e
 
-                    trivy image \
+                    IMAGE="${DOCKER_HUB_USER}/${APP_NAME}:${IMAGE_TAG}"
+
+                    echo "Scanning local Docker image: ${IMAGE}"
+
+                    docker image inspect "${IMAGE}" > /dev/null
+
+                    docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        aquasec/trivy:latest \
+                        image \
+                        --image-src docker \
                         --severity HIGH,CRITICAL \
                         --exit-code 1 \
-                        "${DOCKER_HUB_USER}/${APP_NAME}:${IMAGE_TAG}"
+                        --timeout 10m \
+                        "${IMAGE}"
                 '''
             }
         }
 
-        stage('6. Push Image to Docker Hub') {
-            steps {
-                echo 'Pushing verified image to Docker Hub...'
+        // stage('6. Push Image to Docker Hub') {
+        //     steps {
+        //         echo 'Pushing verified image to Docker Hub...'
 
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: env.DOCKER_CRED_ID,
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    )
-                ]) {
-                    sh '''
-                        set -e
+        //         withCredentials([
+        //             usernamePassword(
+        //                 credentialsId: env.DOCKER_CRED_ID,
+        //                 usernameVariable: 'DOCKER_USER',
+        //                 passwordVariable: 'DOCKER_PASS'
+        //             )
+        //         ]) {
+        //             sh '''
+        //                 set -e
 
-                        echo "${DOCKER_PASS}" | docker login \
-                            --username "${DOCKER_USER}" \
-                            --password-stdin
+        //                 echo "${DOCKER_PASS}" | docker login \
+        //                     --username "${DOCKER_USER}" \
+        //                     --password-stdin
 
-                        docker push \
-                            "${DOCKER_HUB_USER}/${APP_NAME}:${IMAGE_TAG}"
+        //                 docker push \
+        //                     "${DOCKER_HUB_USER}/${APP_NAME}:${IMAGE_TAG}"
 
-                        docker push \
-                            "${DOCKER_HUB_USER}/${APP_NAME}:latest"
+        //                 docker push \
+        //                     "${DOCKER_HUB_USER}/${APP_NAME}:latest"
 
-                        docker logout
-                    '''
-                }
-            }
-        }
+        //                 docker logout
+        //             '''
+        //         }
+        //     }
+        // }
 
         stage('7. Production Manual Approval Gate') {
             when {
@@ -204,34 +234,61 @@ pipeline {
         }
 
         stage('8. Deploy Application') {
+
             steps {
+
                 script {
+
                     echo "Deploying application to ${params.DEPLOY_ENV} environment..."
+
+
 
                     if (params.DEPLOY_ENV == 'PROD') {
 
+
+
                         sh '''
+
                             set -e
 
+
+
                             kubectl set image deployment/${APP_NAME} \
+
                                 node-app=${DOCKER_HUB_USER}/${APP_NAME}:${IMAGE_TAG}
 
+
+
                             kubectl rollout status \
+
                                 deployment/${APP_NAME} \
+
                                 --timeout=180s
+
                         '''
 
+
+
                     } else {
+
                         echo "Deploying to non-production environment: ${params.DEPLOY_ENV}"
 
+
+
                         // Add your DEV/STAGING deployment commands here.
+
                         // Example:
+
                         // kubectl -n dev set image deployment/${APP_NAME} ...
+
                     }
+
                 }
+
             }
+
         }
-    }
+ 
 
     post {
         always {

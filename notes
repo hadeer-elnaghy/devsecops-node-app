@@ -47,15 +47,6 @@ docker run -d --name sonarqube \
   -e SONAR_WEB_JAVAADDITIONALOPTS="-Xmx1g -Xms1g" \
   sonarqube:9.9-community
 
-
-3. Trivy Security Scanner
-Install Aqua Security Trivy:
-
-Bash
-sudo apt-get install wget apt-transport-https gnupg lsb-release -y
-wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
-echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
-sudo apt-get update && sudo apt-get install trivy -y
 4. Docker & Kubernetes Permissions
 Ensure the jenkins user on your server has permission to execute docker and kubectl commands:
 
