@@ -58,81 +58,81 @@ pipeline {
         }
         
 
-        // stage('2. SonarQube SAST Analysis') {
-        //     when {
-        //         expression { return params.RUN_SONARQUBE }
-        //     }
+        stage('2. SonarQube SAST Analysis') {
+            when {
+                expression { return params.RUN_SONARQUBE }
+            }
 
-        //     steps {
-        //         echo 'Executing SonarQube static code analysis via Docker...'
+            steps {
+                echo 'Executing SonarQube static code analysis via Docker...'
 
-        //         withCredentials([
-        //             string(
-        //                 credentialsId: env.SONAR_CRED_ID,
-        //                 variable: 'SONAR_TOKEN'
-        //             )
-        //         ]) {
-        //             sh '''
-        //                 set -e
+                withCredentials([
+                    string(
+                        credentialsId: env.SONAR_CRED_ID,
+                        variable: 'SONAR_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        set -e
 
-        //                 echo "Running SonarQube Scanner Container..."
+                        echo "Running SonarQube Scanner Container..."
 
-        //                 docker run --rm \
-        //                   --network devsecops-net \
-        //                   -e SONAR_SCANNER_OPTS="-Xmx1024m -Dsonar.ws.timeout=300" \
-        //                   -v "${WORKSPACE}:/usr/src" \
-        //                   sonarsource/sonar-scanner-cli:5 \
-        //                   -Dsonar.projectKey="${APP_NAME}" \
-        //                   -Dsonar.host.url="http://sonarqube:9000" \
-        //                   -Dsonar.login="${SONAR_TOKEN}" \
-        //                   -Dsonar.ws.timeout=300
-        //             '''
-        //         }
-        //     }
-        // }
+                        docker run --rm \
+                          --network devsecops-net \
+                          -e SONAR_SCANNER_OPTS="-Xmx1024m -Dsonar.ws.timeout=300" \
+                          -v "${WORKSPACE}:/usr/src" \
+                          sonarsource/sonar-scanner-cli:5 \
+                          -Dsonar.projectKey="${APP_NAME}" \
+                          -Dsonar.host.url="http://sonarqube:9000" \
+                          -Dsonar.login="${SONAR_TOKEN}" \
+                          -Dsonar.ws.timeout=300
+                    '''
+                }
+            }
+        }
 
-        // stage('3. Snyk Dependency SCA Scan') {
-        //     when {
-        //         expression {
-        //             return params.RUN_SNYK
-        //         }
-        //     }
+        stage('3. Snyk Dependency SCA Scan') {
+            when {
+                expression {
+                    return params.RUN_SNYK
+                }
+            }
 
-        //     steps {
-        //         echo 'Executing Snyk dependency vulnerability scan...'
+            steps {
+                echo 'Executing Snyk dependency vulnerability scan...'
 
-        //         withCredentials([
-        //             string(
-        //                 credentialsId: env.SNYK_CRED_ID,
-        //                 variable: 'SNYK_TOKEN'
-        //             )
-        //         ]) {
-        //             sh '''
-        //                 set -e
+                withCredentials([
+                    string(
+                        credentialsId: env.SNYK_CRED_ID,
+                        variable: 'SNYK_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        set -e
 
-        //                 JENKINS_CONTAINER_ID=$(hostname)
+                        JENKINS_CONTAINER_ID=$(hostname)
 
-        //                 echo "Installing dependencies..."
+                        echo "Installing dependencies..."
 
-        //                 docker run --rm \
-        //                 --volumes-from "${JENKINS_CONTAINER_ID}" \
-        //                 -e SNYK_TOKEN="${SNYK_TOKEN}" \
-        //                 -w "${WORKSPACE}" \
-        //                 snyk/snyk:node \
-        //                 npm install
+                        docker run --rm \
+                        --volumes-from "${JENKINS_CONTAINER_ID}" \
+                        -e SNYK_TOKEN="${SNYK_TOKEN}" \
+                        -w "${WORKSPACE}" \
+                        snyk/snyk:node \
+                        npm install
 
-        //                 echo "Running Snyk vulnerability scan..."
+                        echo "Running Snyk vulnerability scan..."
 
-        //                 docker run --rm \
-        //                 --volumes-from "${JENKINS_CONTAINER_ID}" \
-        //                 -e SNYK_TOKEN="${SNYK_TOKEN}" \
-        //                 -w "${WORKSPACE}" \
-        //                 snyk/snyk:node \
-        //                 snyk test --severity-threshold=high
-        //             '''
-        //         }
-        //     }
-        // }
+                        docker run --rm \
+                        --volumes-from "${JENKINS_CONTAINER_ID}" \
+                        -e SNYK_TOKEN="${SNYK_TOKEN}" \
+                        -w "${WORKSPACE}" \
+                        snyk/snyk:node \
+                        snyk test --severity-threshold=high
+                    '''
+                }
+            }
+        }
 
         stage('4. Docker Build Image') {
             steps {
@@ -149,37 +149,37 @@ pipeline {
             }
         }
 
-        // stage('5. Trivy Image Vulnerability Scan') {
-        //     when {
-        //         expression {
-        //             return params.RUN_TRIVY
-        //         }
-        //     }
+        stage('5. Trivy Image Vulnerability Scan') {
+            when {
+                expression {
+                    return params.RUN_TRIVY
+                }
+            }
 
-        //     steps {
-        //         echo 'Executing Trivy vulnerability scan...'
+            steps {
+                echo 'Executing Trivy vulnerability scan...'
 
-        //         sh '''
-        //             set -e
+                sh '''
+                    set -e
 
-        //             IMAGE="${DOCKER_HUB_USER}/${APP_NAME}:${IMAGE_TAG}"
+                    IMAGE="${DOCKER_HUB_USER}/${APP_NAME}:${IMAGE_TAG}"
 
-        //             echo "Scanning local Docker image: ${IMAGE}"
+                    echo "Scanning local Docker image: ${IMAGE}"
 
-        //             docker image inspect "${IMAGE}" > /dev/null
+                    docker image inspect "${IMAGE}" > /dev/null
 
-        //             docker run --rm \
-        //                 -v /var/run/docker.sock:/var/run/docker.sock \
-        //                 aquasec/trivy:latest \
-        //                 image \
-        //                 --image-src docker \
-        //                 --severity HIGH,CRITICAL \
-        //                 --exit-code 1 \
-        //                 --timeout 10m \
-        //                 "${IMAGE}"
-        //         '''
-        //     }
-        // }
+                    docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        aquasec/trivy:latest \
+                        image \
+                        --image-src docker \
+                        --severity HIGH,CRITICAL \
+                        --exit-code 1 \
+                        --timeout 10m \
+                        "${IMAGE}"
+                '''
+            }
+        }
 
         stage('6. Push Image to Docker Hub') {
             steps {
